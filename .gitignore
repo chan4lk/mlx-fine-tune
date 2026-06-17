@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.venv
+.python-version
+
+# uv
+.uv/
+
+# Model weights and checkpoints (large binary files)
+*.safetensors
+*.bin
+*.pt
+*.ckpt
+*.npz
+*.gguf
+*.ggml
+
+# Model directories (downloaded base models — too large for git)
+model/
+fused_model/
+merged/
+
+# Training outputs and checkpoints
+outputs/
+
+# Datasets (keep .jsonl in lora_model/ tracked if small, ignore large ones)
+*.parquet
+*.arrow
+*.hdf5
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
