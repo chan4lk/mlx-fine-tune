@@ -91,9 +91,13 @@ def main():
     # ========================================================================
     print("\n[Step 1] Loading Gemma 4 E4B model...")
 
+    # strict=False: mlx_vlm 0.6.3 omits k_proj/v_proj/k_norm for KV-shared layers
+    # (24-41) in its architecture, but the quantized checkpoint has them — skip
+    # unrecognized weights rather than raising ValueError.
     model, processor = FastVisionModel.from_pretrained(
         "mlx-community/gemma-4-e4b-it-4bit",
         load_in_4bit=True,
+        strict=False,
     )
 
     # ========================================================================
