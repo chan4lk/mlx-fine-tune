@@ -42,14 +42,43 @@ This will:
 
 ### Audio ASR fine-tuning (Gemma 4)
 
-Fine-tune `Gemma 4 E4B` for automatic speech recognition:
+Fine-tune `Gemma 4 E4B` for automatic speech recognition using its built-in 12-layer Conformer audio tower:
 
 ```bash
-uv pip install soundfile   # one-time dependency
 uv run python audio_asr.py
 ```
 
-This uses Gemma 4's built-in 12-layer Conformer audio tower to transcribe 16 kHz audio. Replace the synthetic demo audio with real datasets (Common Voice, LibriSpeech, FLEURS) for production use.
+**Requirements:**
+- Apple Silicon Mac (M1 or later) — MLX does not support Intel Macs
+- ~2 GB free disk space for model download (`mlx-community/gemma-4-e4b-it-4bit`)
+- 8 GB RAM minimum (16 GB recommended)
+
+The model is downloaded automatically from HuggingFace on first run. Subsequent runs use the cached copy.
+
+**Model variants:**
+
+| Model | Size | Use case |
+|-------|------|----------|
+| `gemma-4-e4b-it-4bit` (default) | ~2 GB | Better quality |
+| `gemma-4-e2b-it-4bit` | ~1 GB | Lower memory / edge |
+
+To use the smaller E2B variant, edit `audio_asr.py` and replace `gemma-4-e4b-it-4bit` with `gemma-4-e2b-it-4bit`.
+
+**Using real audio datasets** (for production):
+
+The script ships with synthetic audio for a self-contained demo. To fine-tune on real speech data, replace the `generate_synthetic_audio` call with a real dataset loader:
+
+```python
+# Common Voice (Mozilla)
+from datasets import load_dataset
+ds = load_dataset("mozilla-foundation/common_voice_17_0", "en", split="train")
+
+# LibriSpeech
+ds = load_dataset("openslr/librispeech_asr", "clean", split="train.100")
+
+# FLEURS (multilingual)
+ds = load_dataset("google/fleurs", "en_us", split="train")
+```
 
 ## Project Structure
 
