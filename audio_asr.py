@@ -16,7 +16,7 @@ Replace with real ASR data (Common Voice, LibriSpeech, etc.) for
 production use.
 
 Usage:
-    python examples/47_gemma4_audio_asr_finetuning.py
+    python audio_asr.py
 """
 
 import os
