@@ -144,11 +144,16 @@ def main():
     )
 
     if args.resume:
-        if not os.path.exists(args.resume):
-            print(f"ERROR: Adapter '{args.resume}' not found.")
+        adapter_weights = os.path.join(args.resume, "adapters.safetensors")
+        if not os.path.exists(adapter_weights):
+            print(f"ERROR: Adapter weights not found at {adapter_weights}")
             raise SystemExit(1)
-        print(f"\n[Step 2b] Loading existing adapter weights from {args.resume} ...")
-        model.load_adapter(args.resume)
+        print(f"\n[Step 2b] Resuming from {adapter_weights} ...")
+        import mlx.core as mx
+        # load_weights with strict=False keeps LoRA params trainable (unlike load_adapter)
+        saved = list(mx.load(adapter_weights).items())
+        model.load_weights(saved, strict=False)
+        print(f"Loaded {len(saved)} adapter weight tensors.")
 
     print("\n[Step 3] Preparing Sinhala ASR dataset...")
     audio_dir = None
