@@ -1,9 +1,13 @@
 """
 Synthesize Sinhala speech from text using a fine-tuned Spark-TTS adapter.
 
-Usage:
+Single string:
     uv run python synthesize.py "ආයුබෝවන්"
-    uv run python synthesize.py "ආයුබෝවන්" --adapter sinhala_tts_lora --out hello.wav
+    uv run python synthesize.py "ආයුබෝවන්" --out hello.wav
+
+Text file (one line per clip → output_001.wav, output_002.wav, ...):
+    uv run python synthesize.py --file sinhala.txt
+    uv run python synthesize.py --file sinhala.txt --out audio/clip.wav
 """
 
 import argparse
@@ -13,18 +17,41 @@ import soundfile as sf
 from mlx_tune import FastTTSModel
 
 
+def out_path_for(base: str, index: int, total: int) -> str:
+    if total == 1:
+        return base
+    stem, ext = os.path.splitext(base)
+    return f"{stem}_{index:03d}{ext}"
+
+
 def main():
     parser = argparse.ArgumentParser(description="Synthesize Sinhala speech from text")
-    parser.add_argument("text", help="Sinhala text to synthesize")
+    parser.add_argument("text", nargs="?", help="Sinhala text to synthesize (inline)")
+    parser.add_argument("--file", metavar="PATH",
+                        help="Text file to synthesize — each non-empty line becomes a separate WAV")
     parser.add_argument("--adapter", default="sinhala_tts_lora",
                         help="LoRA adapter directory (default: sinhala_tts_lora)")
     parser.add_argument("--out", default="output.wav",
-                        help="Output WAV file path (default: output.wav)")
+                        help="Output WAV path; for --file with multiple lines, used as stem: output_001.wav, output_002.wav, ... (default: output.wav)")
     args = parser.parse_args()
 
-    if not args.text.strip():
-        print("ERROR: text argument is empty.")
-        raise SystemExit(1)
+    if not args.text and not args.file:
+        parser.error("provide either a text argument or --file PATH")
+
+    if args.file:
+        if not os.path.exists(args.file):
+            print(f"ERROR: File '{args.file}' not found.")
+            raise SystemExit(1)
+        with open(args.file, encoding="utf-8") as f:
+            lines = [l.strip() for l in f if l.strip()]
+        if not lines:
+            print("ERROR: File is empty or has no non-empty lines.")
+            raise SystemExit(1)
+    else:
+        if not args.text.strip():
+            print("ERROR: text argument is empty.")
+            raise SystemExit(1)
+        lines = [args.text.strip()]
 
     if not os.path.exists(args.adapter):
         print(f"ERROR: Adapter '{args.adapter}' not found.")
@@ -41,12 +68,16 @@ def main():
     )
     model.load_adapter(args.adapter)
     FastTTSModel.for_inference(model)
-    print("Ready.")
+    print(f"Ready. Synthesizing {len(lines)} clip(s).\n")
 
-    print(f"Synthesizing: {args.text}")
-    audio = model.generate(text=args.text, max_tokens=1024)
-    sf.write(args.out, audio, 16000)
-    print(f"Saved: {args.out}")
+    for i, line in enumerate(lines, 1):
+        wav_path = out_path_for(args.out, i, len(lines))
+        print(f"[{i}/{len(lines)}] {line[:60]}")
+        audio = model.generate(text=line, max_tokens=1024)
+        sf.write(wav_path, audio, 16000)
+        print(f"  Saved: {wav_path}")
+
+    print(f"\nDone. {len(lines)} file(s) written.")
 
 
 if __name__ == "__main__":
