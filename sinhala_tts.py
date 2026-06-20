@@ -13,6 +13,7 @@ import argparse
 import csv
 import os
 
+import soundfile as sf
 from mlx_tune import FastTTSModel, TTSSFTTrainer, TTSSFTConfig, TTSDataCollator
 
 DEFAULT_TSV = os.path.join("data", "sentences.tsv")
@@ -29,8 +30,10 @@ def load_samples(tsv_path):
         for row in reader:
             path = row.get("audio_path", "").strip()
             sentence = row.get("sentence", "").strip()
-            if path and sentence and os.path.exists(path):
-                samples.append({"audio_path": path, "sentence": sentence})
+            if not (path and sentence and os.path.exists(path)):
+                continue
+            audio_array, _ = sf.read(path, dtype="float32")
+            samples.append({"audio": audio_array, "sentence": sentence})
     print(f"Loaded {len(samples)} recordings from {tsv_path}")
     return samples
 
@@ -91,7 +94,7 @@ def main():
         model=model,
         tokenizer=tokenizer,
         text_column="sentence",
-        audio_column="audio_path",
+        audio_column="audio",
     )
 
     trainer = TTSSFTTrainer(
