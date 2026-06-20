@@ -1,0 +1,28 @@
+{
+  "model_name": "mlx-community/Spark-TTS-0.5B-bf16",
+  "codec_model": "mlx-community/snac_24khz",
+  "model_type": "tts",
+  "fine_tune_type": "lora",
+  "lora_parameters": {
+    "rank": 16,
+    "alpha": 16,
+    "dropout": 0.0,
+    "scale": 1.0,
+    "keys": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ]
+  },
+  "audio_config": {
+    "start_token": 128259,
+    "end_tokens": [],
+    "audio_token_offset": 128266,
+    "codebook_size": 4096,
+    "sample_rate": 24000
+  }
+}
