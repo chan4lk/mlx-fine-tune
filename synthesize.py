@@ -32,6 +32,11 @@ MODELS = {
         "codec": None,
         "adapter": "outetts_lora",
     },
+    "qwen3": {
+        "model_id": "mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-bf16",
+        "codec": None,
+        "adapter": "qwen3_tts_lora",
+    },
 }
 
 
