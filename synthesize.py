@@ -1,17 +1,17 @@
 """
-Synthesize Sinhala speech from text using a fine-tuned Spark-TTS adapter.
+Synthesize Sinhala speech from text using a fine-tuned TTS adapter.
 
 Single string:
     uv run python synthesize.py "ආයුබෝවන්"
-    uv run python synthesize.py "ආයුබෝවන්" --out-dir hello/
+    uv run python synthesize.py "ආයුබෝවන්" --model outetts --out-dir hello/
 
 Text file (one line per clip → synthesized/output_001.wav, ...):
-    uv run python synthesize.py --file sinhala.txt
+    uv run python synthesize.py --file sinhala.txt --model spark
     uv run python synthesize.py --file sinhala.txt --out-dir audio/
 
 TSV file (audio_path + sentence columns → uses audio basename as output name):
     uv run python synthesize.py --tsv recordings/transcriptions-001.tsv
-    uv run python synthesize.py --tsv recordings/transcriptions-001.tsv --out-dir synthesized/
+    uv run python synthesize.py --tsv recordings/transcriptions-001.tsv --model outetts --out-dir synthesized/
 """
 
 import argparse
@@ -21,6 +21,19 @@ import os
 import soundfile as sf
 from mlx_tune import FastTTSModel
 
+MODELS = {
+    "spark": {
+        "model_id": "mlx-community/Spark-TTS-0.5B-bf16",
+        "codec": None,
+        "adapter": "sinhala_tts_lora",
+    },
+    "outetts": {
+        "model_id": "mlx-community/Llama-OuteTTS-1.0-1B-8bit",
+        "codec": None,
+        "adapter": "outetts_lora",
+    },
+}
+
 
 def main():
     parser = argparse.ArgumentParser(description="Synthesize Sinhala speech from text")
@@ -29,8 +42,8 @@ def main():
                         help="Text file — each non-empty line becomes a separate WAV")
     parser.add_argument("--tsv", metavar="PATH",
                         help="TSV file with audio_path + sentence columns (same format as speak.py output)")
-    parser.add_argument("--adapter", default="sinhala_tts_lora",
-                        help="LoRA adapter directory (default: sinhala_tts_lora)")
+    parser.add_argument("--model", default="spark", choices=list(MODELS),
+                        help="TTS model to use (default: spark)")
     parser.add_argument("--out-dir", default="synthesized",
                         help="Output directory for generated WAV files (default: synthesized/)")
     args = parser.parse_args()
@@ -81,17 +94,20 @@ def main():
 
     os.makedirs(args.out_dir, exist_ok=True)
 
-    use_adapter = args.adapter and os.path.exists(args.adapter)
-    if args.adapter and not use_adapter:
-        print(f"WARNING: Adapter '{args.adapter}' not found — running base model only.")
+    cfg = MODELS[args.model]
+    adapter_dir = cfg["adapter"]
+    use_adapter = os.path.exists(adapter_dir)
+    if not use_adapter:
+        print(f"WARNING: Adapter '{adapter_dir}' not found — running base model only.")
 
-    print("Loading model ...")
-    model, tokenizer = FastTTSModel.from_pretrained(  # noqa: F841
-        "mlx-community/Spark-TTS-0.5B-bf16",
-    )
+    print(f"Loading model: {args.model} ...")
+    from_pretrained_kwargs = {"max_seq_length": 2048}
+    if cfg["codec"]:
+        from_pretrained_kwargs["codec_model"] = cfg["codec"]
+    model, tokenizer = FastTTSModel.from_pretrained(cfg["model_id"], **from_pretrained_kwargs)  # noqa: F841
     if use_adapter:
-        model.load_adapter(args.adapter)
-        print(f"Adapter: {args.adapter}")
+        model.load_adapter(adapter_dir)
+        print(f"Adapter: {adapter_dir}")
     else:
         print("Adapter: none (base model)")
     FastTTSModel.for_inference(model)
@@ -107,7 +123,7 @@ def main():
             continue
         print(f"[{i}/{len(clips)}] {text[:60]}")
         audio = model.generate(text=text, max_tokens=1024)
-        sf.write(wav_path, audio, 16000)
+        sf.write(wav_path, audio, model.sample_rate)
         print(f"  Saved: {wav_path}")
         generated += 1
 
