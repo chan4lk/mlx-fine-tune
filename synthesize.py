@@ -37,6 +37,11 @@ MODELS = {
         "codec": None,
         "adapter": "qwen3_tts_lora",
     },
+    "orpheus": {
+        "model_id": "mlx-community/orpheus-3b-0.1-ft-bf16",
+        "codec": "mlx-community/snac_24khz",
+        "adapter": "orpheus_lora",
+    },
 }
 
 
