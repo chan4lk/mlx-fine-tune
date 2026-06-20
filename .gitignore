@@ -40,6 +40,7 @@ synthesized/
 
 # TTS adapter directories (weights covered by *.safetensors above)
 outetts_lora/
+qwen3_tts_lora/
 
 # Datasets (keep .jsonl in lora_model/ tracked if small, ignore large ones)
 *.parquet

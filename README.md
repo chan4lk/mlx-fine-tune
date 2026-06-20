@@ -183,6 +183,37 @@ uv run python synthesize.py "ආයුබෝවන්" --model outetts
 uv run python synthesize.py --tsv recordings/transcriptions-001.tsv --model outetts --out-dir synthesized/
 ```
 
+### Sinhala TTS fine-tuning (Qwen3-TTS 1.7B, 24 kHz, multilingual)
+
+Fine-tune `Qwen3-TTS-12Hz-1.7B-VoiceDesign` (Qwen3-based, built-in speech tokenizer) on your Sinhala voice recordings. Natively supports ZH, EN, JA, KO and more — well-suited for low-resource language adaptation.
+
+```bash
+uv run python qwen3_tts.py
+```
+
+Uses `data/sentences.tsv` by default. Adapters saved to `qwen3_tts_lora/`. Sample rate: **24 kHz**.
+
+**RAM requirement:** ~5–6 GB (bf16 model)
+
+**Use a custom dataset:**
+
+```bash
+uv run python qwen3_tts.py --tsv recordings/transcriptions-001.tsv
+```
+
+**Continue training from existing adapter:**
+
+```bash
+uv run python qwen3_tts.py --resume qwen3_tts_lora
+```
+
+**Synthesize with Qwen3-TTS:**
+
+```bash
+uv run python synthesize.py "ආයුබෝවන්" --model qwen3
+uv run python synthesize.py --tsv recordings/transcriptions-001.tsv --model qwen3 --out-dir synthesized/
+```
+
 ## Project Structure
 
 ```
