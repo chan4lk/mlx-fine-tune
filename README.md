@@ -214,6 +214,50 @@ uv run python synthesize.py "ආයුබෝවන්" --model qwen3
 uv run python synthesize.py --tsv recordings/transcriptions-001.tsv --model qwen3 --out-dir synthesized/
 ```
 
+### Sinhala TTS fine-tuning (Orpheus 3B, 24 kHz, SNAC codec)
+
+Fine-tune `Orpheus-3B` (Llama-based, SNAC 24 kHz codec) on your Sinhala voice recordings. The largest model in the ladder — highest quality ceiling on Apple Silicon.
+
+```bash
+uv run python orpheus_tts.py
+```
+
+Uses `data/sentences.tsv` by default. Adapters saved to `orpheus_lora/`. Sample rate: **24 kHz**.
+
+**RAM requirement:** ~6–8 GB minimum, **16 GB recommended** for best results
+
+> **Note:** Orpheus requires an explicit SNAC codec (`mlx-community/snac_24khz`) which is downloaded automatically on first run.
+
+**Use a custom dataset:**
+
+```bash
+uv run python orpheus_tts.py --tsv recordings/transcriptions-001.tsv
+```
+
+**Continue training from existing adapter:**
+
+```bash
+uv run python orpheus_tts.py --resume orpheus_lora
+```
+
+**Synthesize with Orpheus:**
+
+```bash
+uv run python synthesize.py "ආයුබෝවන්" --model orpheus
+uv run python synthesize.py --tsv recordings/transcriptions-001.tsv --model orpheus --out-dir synthesized/
+```
+
+### TTS model comparison
+
+| Model | Script | Size | Codec | Sample Rate | RAM |
+|-------|--------|------|-------|-------------|-----|
+| Spark-TTS | `sinhala_tts.py` | 0.5B | BiCodec (built-in) | 16 kHz | ~2 GB |
+| OuteTTS | `outetts_tts.py` | 1B | DAC (auto) | 24 kHz | ~3–4 GB |
+| Qwen3-TTS | `qwen3_tts.py` | 1.7B | built-in tokenizer | 24 kHz | ~5–6 GB |
+| Orpheus | `orpheus_tts.py` | 3B | SNAC 24 kHz | 24 kHz | ~6–8 GB |
+
+All models use `--model spark|outetts|qwen3|orpheus` in `synthesize.py`.
+
 ## Project Structure
 
 ```
