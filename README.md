@@ -80,17 +80,62 @@ ds = load_dataset("openslr/librispeech_asr", "clean", split="train.100")
 ds = load_dataset("google/fleurs", "en_us", split="train")
 ```
 
+### Sinhala ASR fine-tuning (Gemma 4 + Mozilla Common Voice)
+
+Fine-tune `Gemma 4 E4B` on validated Sinhala speech from [Mozilla Common Voice 17.0](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0):
+
+**Prerequisites:**
+
+1. Create a HuggingFace account and accept the Common Voice dataset terms:
+   https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0
+
+2. Log in to HuggingFace (run once in the terminal):
+   ```bash
+   ! hf auth login
+   ```
+
+**Run fine-tuning:**
+
+```bash
+uv run python sinhala_asr.py
+```
+
+This loads up to 200 validated Sinhala clips, resamples audio to 16kHz, and trains for 50 steps (~2 minutes on Apple Silicon M-series). Adapters are saved to `sinhala_asr_lora/`.
+
+**Transcribe with the Sinhala adapter:**
+
+```bash
+uv run python transcribe.py /path/to/audio.wav --adapter sinhala_asr_lora
+```
+
+The `transcribe.py` script supports any adapter directory via `--adapter`:
+
+```bash
+# Sinhala adapter
+uv run python transcribe.py audio.wav --adapter sinhala_asr_lora
+
+# Default English adapter (from audio_asr.py)
+uv run python transcribe.py audio.wav --adapter gemma4_audio_asr_lora
+
+# Custom prompt
+uv run python transcribe.py audio.wav --adapter sinhala_asr_lora --prompt "Transcribe this Sinhala speech."
+```
+
 ## Project Structure
 
 ```
 mlx-fine-tune/
-├── main.py           # Llama 3.2 text fine-tuning example
-├── audio_asr.py      # Gemma 4 audio ASR fine-tuning example
-├── pyproject.toml    # Project dependencies (mlx-tune[audio])
-├── lora_model/       # Saved LoRA adapters (generated)
-├── merged/           # Merged 16-bit model (generated)
-├── model/            # GGUF export (generated)
-└── outputs/          # Training checkpoints (generated)
+├── main.py             # Llama 3.2 text fine-tuning example
+├── audio_asr.py        # Gemma 4 audio ASR fine-tuning (synthetic data)
+├── sinhala_asr.py      # Gemma 4 Sinhala ASR fine-tuning (Common Voice)
+├── transcribe.py       # Inference: transcribe audio with a LoRA adapter
+├── pyproject.toml      # Project dependencies (mlx-tune[audio])
+├── sinhala_asr_lora/   # Saved Sinhala LoRA adapters (generated)
+├── gemma4_audio_asr_lora/ # Saved English LoRA adapters (generated)
+├── lora_model/         # Saved LoRA adapters from text fine-tuning (generated)
+├── merged/             # Merged 16-bit model (generated)
+├── model/              # GGUF export (generated)
+└── outputs/            # Training checkpoints (generated)
 ```
 
 ## Configuration
