@@ -38,6 +38,9 @@ gemma4_audio_asr_lora/
 # Synthesized TTS output (generated audio, not source)
 synthesized/
 
+# TTS adapter directories (weights covered by *.safetensors above)
+outetts_lora/
+
 # Datasets (keep .jsonl in lora_model/ tracked if small, ignore large ones)
 *.parquet
 *.arrow

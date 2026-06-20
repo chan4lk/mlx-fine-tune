@@ -148,8 +148,39 @@ uv run python sinhala_tts.py --resume sinhala_tts_lora
 **Synthesize Sinhala speech:**
 
 ```bash
-uv run python synthesize.py "ආයුබෝවන්" --out hello.wav
-uv run python synthesize.py "මගේ නම චන්දිම." --adapter sinhala_tts_lora --out output.wav
+uv run python synthesize.py "ආයුබෝවන්"
+uv run python synthesize.py "ආයුබෝවන්" --model spark --out-dir synthesized/
+```
+
+### Sinhala TTS fine-tuning (OuteTTS 1B, 24 kHz)
+
+Fine-tune `OuteTTS-1.0-1B` (Llama-based, DAC codec) on your Sinhala voice recordings:
+
+```bash
+uv run python outetts_tts.py
+```
+
+Uses `data/sentences.tsv` by default. Adapters saved to `outetts_lora/`. Sample rate: **24 kHz**.
+
+**RAM requirement:** ~3–4 GB (8-bit quantised model)
+
+**Use a custom dataset:**
+
+```bash
+uv run python outetts_tts.py --tsv recordings/transcriptions-001.tsv
+```
+
+**Continue training from existing adapter:**
+
+```bash
+uv run python outetts_tts.py --resume outetts_lora
+```
+
+**Synthesize with OuteTTS:**
+
+```bash
+uv run python synthesize.py "ආයුබෝවන්" --model outetts
+uv run python synthesize.py --tsv recordings/transcriptions-001.tsv --model outetts --out-dir synthesized/
 ```
 
 ## Project Structure
