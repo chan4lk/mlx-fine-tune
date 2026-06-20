@@ -121,6 +121,37 @@ uv run python transcribe.py audio.wav --adapter gemma4_audio_asr_lora
 uv run python transcribe.py audio.wav --adapter sinhala_asr_lora --prompt "Transcribe this Sinhala speech."
 ```
 
+### Sinhala TTS fine-tuning (Spark-TTS)
+
+Fine-tune `Spark-TTS-0.5B` on your own Sinhala voice recordings to synthesize speech from text:
+
+```bash
+uv run python sinhala_tts.py
+```
+
+Uses `data/sentences.tsv` by default (50 clips, ~3 minutes training on Apple Silicon). Adapters saved to `sinhala_tts_lora/`.
+
+> **Note:** 50 samples produces demo-quality synthesis. Record more clips with `record_dataset.py` for better results.
+
+**Use a custom dataset:**
+
+```bash
+uv run python sinhala_tts.py --tsv recordings/transcriptions-001.tsv
+```
+
+**Continue training from existing adapter:**
+
+```bash
+uv run python sinhala_tts.py --resume sinhala_tts_lora
+```
+
+**Synthesize Sinhala speech:**
+
+```bash
+uv run python synthesize.py "ආයුබෝවන්" --out hello.wav
+uv run python synthesize.py "මගේ නම චන්දිම." --adapter sinhala_tts_lora --out output.wav
+```
+
 ## Project Structure
 
 ```
