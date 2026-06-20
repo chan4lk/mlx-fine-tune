@@ -99,6 +99,8 @@ def main():
                         help="Use local recordings from data/sentences.tsv")
     parser.add_argument("--tsv", default=None,
                         help="Path to a custom TSV (audio_path + sentence columns); implies --local")
+    parser.add_argument("--resume", default=None, metavar="ADAPTER_DIR",
+                        help="Continue training from an existing LoRA adapter (e.g. sinhala_asr_lora)")
     args = parser.parse_args()
     if args.tsv:
         args.local = True
@@ -110,6 +112,8 @@ def main():
         print(f"Dataset: local recordings ({tsv_path})")
     else:
         print("Dataset: Mozilla Common Voice 17.0")
+    if args.resume:
+        print(f"Resume:  continuing from {args.resume}")
     print("=" * 70)
 
     if not args.local:
@@ -138,6 +142,13 @@ def main():
         bias="none",
         random_state=3407,
     )
+
+    if args.resume:
+        if not os.path.exists(args.resume):
+            print(f"ERROR: Adapter '{args.resume}' not found.")
+            raise SystemExit(1)
+        print(f"\n[Step 2b] Loading existing adapter weights from {args.resume} ...")
+        model.load_adapter(args.resume)
 
     print("\n[Step 3] Preparing Sinhala ASR dataset...")
     audio_dir = None
