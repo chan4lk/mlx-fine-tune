@@ -53,10 +53,9 @@ def main():
             raise SystemExit(1)
         lines = [args.text.strip()]
 
-    if not os.path.exists(args.adapter):
-        print(f"ERROR: Adapter '{args.adapter}' not found.")
-        print("Fine-tune first:  uv run python sinhala_tts.py")
-        raise SystemExit(1)
+    use_adapter = args.adapter and os.path.exists(args.adapter)
+    if args.adapter and not use_adapter:
+        print(f"WARNING: Adapter '{args.adapter}' not found — running base model only.")
 
     out_dir = os.path.dirname(args.out)
     if out_dir:
@@ -66,7 +65,11 @@ def main():
     model, tokenizer = FastTTSModel.from_pretrained(  # noqa: F841
         "mlx-community/Spark-TTS-0.5B-bf16",
     )
-    model.load_adapter(args.adapter)
+    if use_adapter:
+        model.load_adapter(args.adapter)
+        print(f"Adapter: {args.adapter}")
+    else:
+        print("Adapter: none (base model)")
     FastTTSModel.for_inference(model)
     print(f"Ready. Synthesizing {len(lines)} clip(s).\n")
 
