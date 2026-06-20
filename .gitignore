@@ -27,6 +27,13 @@ merged/
 
 # Training outputs and checkpoints
 outputs/
+outputs_*/
+
+# Generated adapter directories (synthetic/demo — not useful to share)
+gemma4_audio_asr_lora/
+
+# Session files
+.session-id
 
 # Datasets (keep .jsonl in lora_model/ tracked if small, ignore large ones)
 *.parquet
