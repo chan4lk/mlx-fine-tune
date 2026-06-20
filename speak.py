@@ -1,15 +1,20 @@
 """
-Record audio then transcribe it immediately.
+Record audio, transcribe immediately, and save both to a dataset for retraining.
+
+Each recording is saved as a WAV in --out-dir. A TSV (transcriptions.tsv) is
+updated with the audio path and model transcription after every clip. Open the
+TSV in any spreadsheet/editor to correct wrong transcriptions, then retrain:
+
+    uv run python sinhala_asr.py --tsv recordings/transcriptions.tsv
 
 Usage:
     uv run python speak.py
-    uv run python speak.py --adapter sinhala_asr_lora
-    uv run python speak.py --adapter gemma4_audio_asr_lora
+    uv run python speak.py --adapter sinhala_asr_lora --out-dir recordings
 """
 
 import argparse
+import csv
 import os
-import tempfile
 import threading
 
 import numpy as np
@@ -54,10 +59,34 @@ class AudioRecorder:
             return np.array([], dtype=np.float32)
 
 
+def next_index(out_dir):
+    existing = [f for f in os.listdir(out_dir) if f.startswith("rec_") and f.endswith(".wav")]
+    if not existing:
+        return 1
+    nums = []
+    for name in existing:
+        try:
+            nums.append(int(name[4:8]))
+        except ValueError:
+            pass
+    return max(nums) + 1 if nums else 1
+
+
+def append_tsv(tsv_path, audio_path, transcription):
+    write_header = not os.path.exists(tsv_path)
+    with open(tsv_path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f, delimiter="\t")
+        if write_header:
+            writer.writerow(["audio_path", "sentence"])
+        writer.writerow([audio_path, transcription])
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Record and transcribe Sinhala speech")
+    parser = argparse.ArgumentParser(description="Record, transcribe, and save for retraining")
     parser.add_argument("--adapter", default="sinhala_asr_lora",
                         help="LoRA adapter directory (default: sinhala_asr_lora)")
+    parser.add_argument("--out-dir", default="recordings",
+                        help="Directory to save WAV files and transcriptions.tsv (default: recordings)")
     parser.add_argument("--prompt", default="Transcribe this audio.",
                         help="Transcription prompt")
     args = parser.parse_args()
@@ -67,17 +96,21 @@ def main():
         print("Fine-tune first:  uv run python sinhala_asr.py --local")
         raise SystemExit(1)
 
+    os.makedirs(args.out_dir, exist_ok=True)
+    tsv_path = os.path.join(args.out_dir, "transcriptions.tsv")
+
     print(f"Loading model with adapter: {args.adapter} ...")
-    model, processor = FastVisionModel.from_pretrained(
+    model, processor = FastVisionModel.from_pretrained(  # noqa: F841
         "mlx-community/gemma-4-e4b-it-4bit",
         load_in_4bit=True,
         strict=False,
     )
     model.load_adapter(args.adapter)
     FastVisionModel.for_inference(model)
-    print("Ready.\n")
+    print(f"Ready. Saving audio + transcriptions to: {args.out_dir}/\n")
 
     recorder = AudioRecorder()
+    idx = next_index(args.out_dir)
 
     while True:
         print("Press Enter to start recording (q + Enter to quit):")
@@ -85,7 +118,7 @@ def main():
         if key == "q":
             break
 
-        print("🔴 Recording... press Enter to stop.")
+        print("Recording... press Enter to stop.")
         recorder.start()
         input()
         audio = recorder.stop()
@@ -95,22 +128,26 @@ def main():
             print("Too short — try again.\n")
             continue
 
-        print(f"Recorded {duration:.1f}s. Transcribing...")
+        wav_path = os.path.join(args.out_dir, f"rec_{idx:04d}.wav")
+        sf.write(wav_path, audio, SAMPLE_RATE)
+        print(f"Saved: {wav_path} ({duration:.1f}s). Transcribing...")
 
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-            wav_path = f.name
-        try:
-            sf.write(wav_path, audio, SAMPLE_RATE)
-            response = model.generate(
-                audio=wav_path,
-                prompt=args.prompt,
-                max_tokens=256,
-                temperature=0.0,
-            )
-        finally:
-            os.unlink(wav_path)
+        transcription = model.generate(
+            audio=wav_path,
+            prompt=args.prompt,
+            max_tokens=256,
+            temperature=0.0,
+        )
 
-        print(f"\nTranscription: {response}\n")
+        append_tsv(tsv_path, wav_path, transcription)
+        print(f"Transcription: {transcription}")
+        print(f"Logged to: {tsv_path}\n")
+        idx += 1
+
+    print(f"\nDone. {idx - next_index(args.out_dir) + 1} clips saved.")
+    print(f"Review and correct transcriptions in: {tsv_path}")
+    print(f"Then retrain with:")
+    print(f"  uv run python sinhala_asr.py --tsv {tsv_path}")
 
 
 if __name__ == "__main__":

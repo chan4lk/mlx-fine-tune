@@ -28,7 +28,7 @@ from mlx_tune.vlm import VLMSFTConfig
 
 MAX_SAMPLES = 200
 TARGET_SR = 16000
-LOCAL_TSV = os.path.join("data", "sentences.tsv")
+DEFAULT_LOCAL_TSV = os.path.join("data", "sentences.tsv")
 
 
 def check_hf_auth():
@@ -43,20 +43,21 @@ def check_hf_auth():
         raise SystemExit(1)
 
 
-def load_local_samples():
-    if not os.path.exists(LOCAL_TSV):
-        print(f"ERROR: {LOCAL_TSV} not found.")
+def load_local_samples(tsv_path):
+    if not os.path.exists(tsv_path):
+        print(f"ERROR: {tsv_path} not found.")
         print("Record your own voice first:\n  uv run python record_dataset.py")
+        print("Or use speak.py to record + transcribe:\n  uv run python speak.py")
         raise SystemExit(1)
     samples = []
-    with open(LOCAL_TSV, encoding="utf-8") as f:
+    with open(tsv_path, encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
             path = row.get("audio_path", "").strip()
             sentence = row.get("sentence", "").strip()
             if path and sentence and os.path.exists(path):
                 samples.append({"audio_path": path, "sentence": sentence})
-    print(f"Loaded {len(samples)} local recordings from {LOCAL_TSV}")
+    print(f"Loaded {len(samples)} local recordings from {tsv_path}")
     return samples
 
 
@@ -95,12 +96,20 @@ def load_sinhala_samples(audio_dir: str):
 def main():
     parser = argparse.ArgumentParser(description="Sinhala ASR fine-tuning with Gemma 4")
     parser.add_argument("--local", action="store_true",
-                        help="Use local recordings from record_dataset.py (data/sentences.tsv)")
+                        help="Use local recordings from data/sentences.tsv")
+    parser.add_argument("--tsv", default=None,
+                        help="Path to a custom TSV (audio_path + sentence columns); implies --local")
     args = parser.parse_args()
+    if args.tsv:
+        args.local = True
 
+    tsv_path = args.tsv or DEFAULT_LOCAL_TSV
     print("=" * 70)
     print("GEMMA 4 SINHALA ASR FINE-TUNING")
-    print("Dataset:", "local recordings (data/sentences.tsv)" if args.local else "Mozilla Common Voice 17.0")
+    if args.local:
+        print(f"Dataset: local recordings ({tsv_path})")
+    else:
+        print("Dataset: Mozilla Common Voice 17.0")
     print("=" * 70)
 
     if not args.local:
@@ -134,7 +143,7 @@ def main():
     audio_dir = None
     try:
         if args.local:
-            samples = load_local_samples()
+            samples = load_local_samples(tsv_path)
         else:
             audio_dir = tempfile.mkdtemp(prefix="sinhala_asr_")
             samples = load_sinhala_samples(audio_dir)
