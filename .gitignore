@@ -35,6 +35,9 @@ gemma4_audio_asr_lora/
 # Session files
 .session-id
 
+# Synthesized TTS output (generated audio, not source)
+synthesized/
+
 # Datasets (keep .jsonl in lora_model/ tracked if small, ignore large ones)
 *.parquet
 *.arrow
