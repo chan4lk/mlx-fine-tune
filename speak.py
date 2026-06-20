@@ -59,7 +59,7 @@ class AudioRecorder:
             return np.array([], dtype=np.float32)
 
 
-def next_index(out_dir):
+def next_wav_index(out_dir):
     existing = [f for f in os.listdir(out_dir) if f.startswith("rec_") and f.endswith(".wav")]
     if not existing:
         return 1
@@ -70,6 +70,23 @@ def next_index(out_dir):
         except ValueError:
             pass
     return max(nums) + 1 if nums else 1
+
+
+def next_session_tsv(out_dir):
+    existing = [
+        f for f in os.listdir(out_dir)
+        if f.startswith("transcriptions-") and f.endswith(".tsv")
+    ]
+    if not existing:
+        return os.path.join(out_dir, "transcriptions-001.tsv")
+    nums = []
+    for name in existing:
+        try:
+            nums.append(int(name[15:18]))
+        except ValueError:
+            pass
+    n = max(nums) + 1 if nums else 1
+    return os.path.join(out_dir, f"transcriptions-{n:03d}.tsv")
 
 
 def append_tsv(tsv_path, audio_path, transcription):
@@ -97,7 +114,7 @@ def main():
         raise SystemExit(1)
 
     os.makedirs(args.out_dir, exist_ok=True)
-    tsv_path = os.path.join(args.out_dir, "transcriptions.tsv")
+    tsv_path = next_session_tsv(args.out_dir)
 
     print(f"Loading model with adapter: {args.adapter} ...")
     model, processor = FastVisionModel.from_pretrained(  # noqa: F841
@@ -107,10 +124,10 @@ def main():
     )
     model.load_adapter(args.adapter)
     FastVisionModel.for_inference(model)
-    print(f"Ready. Saving audio + transcriptions to: {args.out_dir}/\n")
+    print(f"Ready. Session TSV: {tsv_path}\n")
 
     recorder = AudioRecorder()
-    idx = next_index(args.out_dir)
+    idx = next_wav_index(args.out_dir)
 
     while True:
         print("Press Enter to start recording (q + Enter to quit):")
@@ -144,7 +161,7 @@ def main():
         print(f"Logged to: {tsv_path}\n")
         idx += 1
 
-    print(f"\nDone. {idx - next_index(args.out_dir) + 1} clips saved.")
+    print(f"\nDone. {idx - next_wav_index(args.out_dir) + 1} clips saved.")
     print(f"Review and correct transcriptions in: {tsv_path}")
     print(f"Then retrain with:")
     print(f"  uv run python sinhala_asr.py --tsv {tsv_path}")
